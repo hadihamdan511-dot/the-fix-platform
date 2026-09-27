@@ -6,6 +6,8 @@ import { AvgOrderValueForm } from '@/components/AvgOrderValueForm';
 import { RetentionEntryList, type RetentionEntryRow } from '@/components/RetentionEntryList';
 import { MIN_RETENTION_ENTRIES } from '@/lib/pricingRecommendation';
 import type { PricingRecommendation } from '@/lib/types';
+import { getLang } from '@/lib/getLang';
+import { getRetentionDict } from '@/lib/dictRetention';
 
 interface PageProps {
   params: Promise<{ branchId: string }>;
@@ -13,6 +15,7 @@ interface PageProps {
 
 export default async function RetentionPage({ params }: PageProps) {
   const { branchId } = await params;
+  const t = getRetentionDict(await getLang());
   const supabase = await createServerSupabaseClient();
 
   const { data: branch } = await supabase
@@ -24,7 +27,7 @@ export default async function RetentionPage({ params }: PageProps) {
   if (!branch) {
     return (
       <div className="mx-auto max-w-2xl p-6">
-        <p className="text-gray-600">This branch isn&apos;t available, or you don&apos;t have access to it.</p>
+        <p className="text-gray-600">{t.unavailable}</p>
       </div>
     );
   }
@@ -47,13 +50,13 @@ export default async function RetentionPage({ params }: PageProps) {
   const avgOrderValue = branch.avg_order_value != null ? Number(branch.avg_order_value) : null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-6">
+    <div className="mx-auto w-full max-w-2xl space-y-8 p-6">
       <div>
         <Link href="/dashboard" className="text-sm text-[#1F3864] underline">
-          &larr; Back to dashboard
+          {t.backToDashboard}
         </Link>
         <p className="mt-3 text-sm font-medium text-gray-500">{branch.name}</p>
-        <h1 className="text-2xl font-bold text-[#1F3864]">Retention &amp; pricing</h1>
+        <h1 className="text-2xl font-bold text-[#1F3864]">{t.pageTitle}</h1>
       </div>
 
       <AvgOrderValueForm branchId={branch.id} currentValue={avgOrderValue} />
@@ -62,9 +65,7 @@ export default async function RetentionPage({ params }: PageProps) {
         <PricingRecommendationCard recommendation={latestRecommendation} />
       ) : (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-          {avgOrderValue == null
-            ? 'Set an average order value above, then add at least ' + MIN_RETENTION_ENTRIES + ' repeat customers to get a recommendation.'
-            : 'No recommendation yet. Add at least ' + MIN_RETENTION_ENTRIES + ' repeat customers below to generate one.'}
+          {avgOrderValue == null ? t.needAov(MIN_RETENTION_ENTRIES) : t.noRecYet(MIN_RETENTION_ENTRIES)}
         </div>
       )}
 

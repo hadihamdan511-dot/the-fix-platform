@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateAvgOrderValue } from '@/lib/actions/retention';
+import { useLang } from '@/components/LangProvider';
+import { getRetentionDict } from '@/lib/dictRetention';
 
 interface Props {
   branchId: string;
@@ -11,6 +13,7 @@ interface Props {
 
 export function AvgOrderValueForm({ branchId, currentValue }: Props) {
   const router = useRouter();
+  const t = getRetentionDict(useLang()).aov;
   const [value, setValue] = useState(currentValue != null ? String(currentValue) : '');
   const [editing, setEditing] = useState(currentValue == null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +23,7 @@ export function AvgOrderValueForm({ branchId, currentValue }: Props) {
     setError(null);
     const num = Number(value);
     if (!value || !Number.isFinite(num) || num <= 0) {
-      setError('Enter a number greater than 0.');
+      setError(t.invalid);
       return;
     }
     startTransition(async () => {
@@ -36,17 +39,17 @@ export function AvgOrderValueForm({ branchId, currentValue }: Props) {
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-sm font-medium text-gray-500">Average order value</p>
+      <p className="text-sm font-medium text-gray-500">{t.label}</p>
 
       {!editing ? (
         <div className="mt-1 flex items-center gap-4">
-          <span className="text-xl font-semibold text-[#1F3864]">${currentValue}</span>
+          <span dir="ltr" className="text-xl font-semibold text-[#1F3864]">${currentValue}</span>
           <button
             type="button"
             onClick={() => setEditing(true)}
             className="text-sm font-medium text-[#1F3864] underline"
           >
-            Edit
+            {t.edit}
           </button>
         </div>
       ) : (
@@ -59,7 +62,7 @@ export function AvgOrderValueForm({ branchId, currentValue }: Props) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             className="w-32 rounded border border-gray-300 px-3 py-2 text-sm"
-            placeholder="e.g. 45"
+            placeholder={t.placeholder}
           />
           <button
             type="button"
@@ -67,7 +70,7 @@ export function AvgOrderValueForm({ branchId, currentValue }: Props) {
             disabled={isPending}
             className="rounded bg-[#1F3864] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {isPending ? 'Saving...' : 'Save'}
+            {isPending ? t.saving : t.save}
           </button>
           {currentValue != null && (
             <button
@@ -79,16 +82,14 @@ export function AvgOrderValueForm({ branchId, currentValue }: Props) {
               }}
               className="text-sm text-gray-500"
             >
-              Cancel
+              {t.cancel}
             </button>
           )}
         </div>
       )}
 
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      <p className="mt-2 text-xs text-gray-500">
-        Changing this recalculates your pricing recommendation automatically.
-      </p>
+      <p className="mt-2 text-xs text-gray-500">{t.note}</p>
     </div>
   );
 }

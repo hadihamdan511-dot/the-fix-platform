@@ -19,13 +19,19 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: entries, error: entriesError } = await authedClient
-    .from('retention_entries').select('retention_reason').eq('branch_id', branchId);
+    .from('retention_entries').select('retention_reason, purchase_count_estimate').eq('branch_id', branchId);
   if (entriesError) return NextResponse.json({ error: entriesError.message }, { status: 500 });
   if (!entries || entries.length < MIN_RETENTION_ENTRIES) {
     return NextResponse.json({ error: `At least ${MIN_RETENTION_ENTRIES} retention entries are needed before a recommendation can be generated.` }, { status: 422 });
   }
 
-  const result = generateRecommendation(Number(branch.avg_order_value), entries.map((e) => ({ retentionReason: e.retention_reason })));
+  const result = generateRecommendation(
+    Number(branch.avg_order_value),
+    entries.map((e) => ({
+      retentionReason: e.retention_reason,
+      purchaseCountEstimate: e.purchase_count_estimate ?? 0,
+    }))
+  );
 
   const serviceClient = createServiceRoleClient();
   const { data: saved, error: saveError } = await serviceClient

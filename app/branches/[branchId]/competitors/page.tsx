@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createServerSupabaseClient } from '@/lib/supabase/serverAuth';
 import { AddCompetitorForm, LogEntryForm, CopyToBranchesButton } from '@/components/CompetitorForms';
+import { CompetitorHeader, EntryHistory, type EntryRow } from '@/components/CompetitorManage';
 import type { Competitor, OwnSocialEntry } from '@/lib/types';
 import { getLang } from '@/lib/getLang';
 import { getCompetitorsDict } from '@/lib/dictCompetitors';
@@ -129,16 +130,24 @@ export default async function CompetitorsPage({ params }: PageProps) {
 
         {competitors.map((c) => {
           const targets = siblings.filter((s) => !existing.has(s.id + '|' + c.name.trim().toLowerCase()));
+          const history: EntryRow[] = sortNewest(c.competitor_entries).map((e) => ({
+            id: e.id,
+            entry_date: e.entry_date ?? null,
+            follower_count: e.follower_count ?? null,
+            posting_frequency: e.posting_frequency ?? null,
+            price_change_note: e.price_change_note ?? null,
+            is_flagged: Boolean(e.is_flagged),
+          }));
           return (
             <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-gray-800">{c.name}</p>
-                  {c.notes && <p className="text-xs text-gray-500">{c.notes}</p>}
-                </div>
+                <CompetitorHeader id={c.id} name={c.name} notes={c.notes} />
                 <CopyToBranchesButton name={c.name} notes={c.notes} targetBranches={targets} />
               </div>
-              <LogEntryForm target={{ kind: 'competitor', competitorId: c.id }} label={t.logNewNumbers} />
+              <div className="mt-2">
+                <LogEntryForm target={{ kind: 'competitor', competitorId: c.id }} label={t.logNewNumbers} />
+              </div>
+              <EntryHistory entries={history} />
             </div>
           );
         })}

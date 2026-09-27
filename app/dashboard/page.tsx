@@ -5,8 +5,15 @@ import { getLang } from '@/lib/getLang';
 import { getDict } from '@/lib/dictionaries';
 import type { PricingRecommendation, RecommendationStatus } from '@/lib/types';
 
-// TODO: replace with the real booking link once it's set up.
-const BOOKING_URL = '#';
+const WHATSAPP_NUMBER = '96181005974';
+
+function bookingUrl(featureTitle: string, lang: 'en' | 'ar') {
+  const message =
+    lang === 'ar'
+      ? 'مرحباً، أرغب في حجز استشارة مع The Fix لمناقشة ' + featureTitle + '.'
+      : "Hi, I'm interested in booking a consultation with The Fix to discuss " + featureTitle + '.';
+  return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
+}
 
 interface BranchRow { id: string; name: string; account_id: string; }
 interface LogRow { account_id: string; status: RecommendationStatus; date_given: string; }
@@ -33,7 +40,8 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const dict = getDict(await getLang());
+  const lang = await getLang();
+  const dict = getDict(lang);
   const t = dict.dashboard;
 
   const [{ data: accounts }, { data: branchData }, { data: recData }, { data: logData }] = await Promise.all([
@@ -165,7 +173,12 @@ export default async function DashboardPage() {
                   <p className="mt-3 font-semibold text-gray-800">{feature.title}</p>
                   <p className="mt-1 flex-1 text-sm text-gray-500">{feature.description}</p>
                   <p className="mt-3 text-xs font-medium text-gray-500">{t.lockedNote}</p>
-                  <a href={BOOKING_URL} className="mt-3 rounded-md bg-[#BF8F00] px-3 py-2 text-center text-sm font-semibold text-white hover:opacity-90">
+                  <a
+                    href={bookingUrl(feature.title, lang)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 rounded-md bg-[#BF8F00] px-3 py-2 text-center text-sm font-semibold text-white hover:opacity-90"
+                  >
                     {t.bookConsultation}
                   </a>
                 </div>

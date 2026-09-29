@@ -20,7 +20,7 @@ export async function TopBar({ lang }: { lang: 'en' | 'ar' }) {
       {user && (
         <>
           {isAdmin && (
-            <Link href="/admin/clients/new" className="font-medium text-[#1F3864] hover:underline">
+            <Link href="/admin/clients" className="font-medium text-[#1F3864] hover:underline">
               {t.admin}
             </Link>
           )}

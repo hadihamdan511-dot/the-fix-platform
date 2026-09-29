@@ -14,15 +14,13 @@ export function LanguageSwitcher({ lang }: { lang: 'en' | 'ar' }) {
   }
 
   return (
-    <div className="flex w-full justify-end px-4 pt-4">
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={isPending}
-        className="rounded-full border border-[#1F3864] bg-white px-4 py-1.5 text-sm font-semibold text-[#1F3864] shadow-sm hover:bg-[#1F3864] hover:text-white disabled:opacity-50"
-      >
-        {lang === 'en' ? 'عربي' : 'English'}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={isPending}
+      className="rounded-full border border-[#1F3864] bg-white px-4 py-1.5 text-sm font-semibold text-[#1F3864] shadow-sm hover:bg-[#1F3864] hover:text-white disabled:opacity-50"
+    >
+      {lang === 'en' ? 'عربي' : 'English'}
+    </button>
   );
 }

@@ -44,6 +44,12 @@ export default async function DashboardPage() {
   const dict = getDict(lang);
   const t = dict.dashboard;
 
+  const emptyTitle = lang === 'ar' ? 'لم يُحسب بعد' : 'Not calculated yet';
+  const emptyHint =
+    lang === 'ar'
+      ? 'أضف 5 عملاء متكررين على الأقل لأي فرع لرؤية التقدير.'
+      : 'Add at least 5 repeat customers to any branch to see an estimate.';
+
   const [{ data: accounts }, { data: branchData }, { data: recData }, { data: logData }] = await Promise.all([
     supabase.from('accounts').select('id, name').order('name'),
     supabase.from('branches').select('id, name, account_id').order('name'),
@@ -75,6 +81,7 @@ export default async function DashboardPage() {
         const lines = branches
           .filter((b) => b.account_id === account.id)
           .map((b) => ({ branch: b, rec: latestRec.get(b.id) ?? null }));
+        const anyRec = lines.some((l) => l.rec);
         const totalLow = lines.reduce((sum, l) => sum + (l.rec ? Number(l.rec.estimated_revenue_low) : 0), 0);
         const totalHigh = lines.reduce((sum, l) => sum + (l.rec ? Number(l.rec.estimated_revenue_high) : 0), 0);
         const quarterLogs = logs.filter((l) => l.account_id === account.id && l.date_given >= qStart);
@@ -90,10 +97,19 @@ export default async function DashboardPage() {
             {/* Headline */}
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium uppercase tracking-wide text-gray-500">{t.opportunityTitle}</p>
-              <p className="mt-2 text-5xl font-bold text-[#BF8F00]">
-                {totalHigh > 0 ? <Range low={totalLow} high={totalHigh} /> : usd(0)}
-              </p>
-              <p className="mt-1 text-sm text-gray-500">{t.perMonthAcross(lines.length)}</p>
+              {anyRec ? (
+                <>
+                  <p className="mt-2 text-4xl font-bold text-[#BF8F00] sm:text-5xl">
+                    {totalHigh > 0 ? <Range low={totalLow} high={totalHigh} /> : usd(0)}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">{t.perMonthAcross(lines.length)}</p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-2xl font-semibold text-gray-400">{emptyTitle}</p>
+                  <p className="mt-1 text-sm text-gray-500">{emptyHint}</p>
+                </>
+              )}
               <p className="mt-4 text-sm text-gray-600">{t.sourceNote}</p>
 
               {/* Line items */}
@@ -128,25 +144,27 @@ export default async function DashboardPage() {
               </div>
 
               {/* Transparency */}
-              <details className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
-                <summary className="cursor-pointer font-medium text-[#1F3864]">{t.howCalculated}</summary>
-                <div className="mt-3 space-y-2">
-                  <p>{t.howIntro}</p>
-                  {lines.filter((l) => l.rec).map(({ branch, rec }) => {
-                    const f = rec!.formula_snapshot;
-                    return (
-                      <p key={branch.id} className="text-xs text-gray-600">
-                        <span className="font-medium">{branch.name}:</span>{' '}
-                        <span dir="ltr" className="inline-block font-mono">
-                          {usd(f.avg_order_value)} × {f.repeat_customer_count} × {pct(f.price_increase_pct_range[0])}–{pct(f.price_increase_pct_range[1])} = {usd(Number(rec!.estimated_revenue_low))}–{usd(Number(rec!.estimated_revenue_high))}
-                        </span>{' '}
-                        ({f.repeat_customer_count} {t.customers}, {t.mainReason}: {dict.reasons[f.dominant_reason]})
-                      </p>
-                    );
-                  })}
-                  <p className="text-gray-500">{t.howFootnote}</p>
-                </div>
-              </details>
+              {anyRec && (
+                <details className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
+                  <summary className="cursor-pointer font-medium text-[#1F3864]">{t.howCalculated}</summary>
+                  <div className="mt-3 space-y-2">
+                    <p>{t.howIntro}</p>
+                    {lines.filter((l) => l.rec).map(({ branch, rec }) => {
+                      const f = rec!.formula_snapshot;
+                      return (
+                        <p key={branch.id} className="text-xs text-gray-600">
+                          <span className="font-medium">{branch.name}:</span>{' '}
+                          <span dir="ltr" className="inline-block font-mono">
+                            {usd(f.avg_order_value)} × {f.repeat_customer_count} × {pct(f.price_increase_pct_range[0])}–{pct(f.price_increase_pct_range[1])} = {usd(Number(rec!.estimated_revenue_low))}–{usd(Number(rec!.estimated_revenue_high))}
+                          </span>{' '}
+                          ({f.repeat_customer_count} {t.customers}, {t.mainReason}: {dict.reasons[f.dominant_reason]})
+                        </p>
+                      );
+                    })}
+                    <p className="text-gray-500">{t.howFootnote}</p>
+                  </div>
+                </details>
+              )}
             </div>
 
             {/* Accountability */}

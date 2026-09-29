@@ -21,19 +21,22 @@ export default async function RecommendationsPage() {
   const t = getRecommendationsDict(lang);
   const supabase = await createServerSupabaseClient();
 
-  const { data } = await supabase
-    .from('recommendation_log')
-    .select('*, branches(name)')
-    .order('date_given', { ascending: false })
-    .order('created_at', { ascending: false });
+  const [{ data: accountData }, { data }] = await Promise.all([
+    supabase.from('accounts').select('id, name').order('name'),
+    supabase
+      .from('recommendation_log')
+      .select('*, branches(name)')
+      .order('date_given', { ascending: false })
+      .order('created_at', { ascending: false }),
+  ]);
 
+  const accounts = (accountData ?? []) as { id: string; name: string }[];
   const entries = (data ?? []) as RecommendationLogEntry[];
   const qStart = quarterStart(new Date());
-  const thisQuarter = entries.filter((e) => e.date_given >= qStart);
-  const implemented = thisQuarter.filter((e) => e.status === 'implemented').length;
+  const showAccountNames = accounts.length > 1;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8 p-6">
+    <div className="mx-auto w-full max-w-3xl space-y-10 p-6">
       <div>
         <Link href="/dashboard" className="text-sm text-[#1F3864] underline">
           {t.backToDashboard}
@@ -42,33 +45,51 @@ export default async function RecommendationsPage() {
         <p className="text-sm text-gray-500">{t.intro}</p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        {thisQuarter.length === 0 ? (
-          <p className="text-gray-600">{t.noLogs}</p>
-        ) : (
-          <p className="text-gray-700">
-            <span className="text-3xl font-bold text-[#BF8F00]">{t.implementedOf(implemented, thisQuarter.length)}</span>
-            <span className="ms-2">{t.implementedSuffix}</span>
-          </p>
-        )}
-      </div>
+      {accounts.map((account) => {
+        const accountEntries = entries.filter((e) => e.account_id === account.id);
+        const thisQuarter = accountEntries.filter((e) => e.date_given >= qStart);
+        const implemented = thisQuarter.filter((e) => e.status === 'implemented').length;
 
-      <div className="space-y-3">
-        {entries.map((e) => (
-          <div key={e.id} className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4">
-            <div className="space-y-1">
-              <p dir="auto" className="text-sm text-gray-800">
-                {translateRecText(e.recommendation_text, lang)}
-              </p>
-              <p className="text-xs text-gray-500">
-                {t.sources[e.source]}
-                {e.branches?.name ? ' · ' + e.branches.name : ''} · {t.given(formatDate(e.date_given, lang))}
-              </p>
+        return (
+          <section
+            key={account.id}
+            className={showAccountNames ? 'space-y-4 rounded-2xl border-2 border-[#1F3864]/15 p-4' : 'space-y-4'}
+          >
+            {showAccountNames && (
+              <h2 className="text-xl font-bold text-[#1F3864]">{account.name}</h2>
+            )}
+
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              {thisQuarter.length === 0 ? (
+                <p className="text-gray-600">{t.noLogs}</p>
+              ) : (
+                <p className="text-gray-700">
+                  <span className="text-3xl font-bold text-[#BF8F00]">{t.implementedOf(implemented, thisQuarter.length)}</span>
+                  <span className="ms-2">{t.implementedSuffix}</span>
+                </p>
+              )}
             </div>
-            <RecommendationStatusSelect id={e.id} initialStatus={e.status} />
-          </div>
-        ))}
-      </div>
+
+            <div className="space-y-3">
+              {accountEntries.map((e) => (
+                <div key={e.id} className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="space-y-1">
+                    <p dir="auto" className="text-sm text-gray-800">
+                      {translateRecText(e.recommendation_text, lang)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {showAccountNames && <span className="font-semibold text-[#1F3864]">{account.name} · </span>}
+                      {t.sources[e.source]}
+                      {e.branches?.name ? ' · ' + e.branches.name : ''} · {t.given(formatDate(e.date_given, lang))}
+                    </p>
+                  </div>
+                  <RecommendationStatusSelect id={e.id} initialStatus={e.status} />
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
